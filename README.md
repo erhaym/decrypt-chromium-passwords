@@ -90,7 +90,7 @@ constexpr char kObfuscationPrefixV11[] = "v11";
 As we can see, we have two possible prefixes, "v10" or "v11" used by Chromium to signal how the saved password is processed, they're notably referred to as "ObfuscationPrefix". Additionally we read that:
 - The "v10" prefix signals that the password is encrypted using a hardcoded password.
 - The "v11" signals that the password is stored by using an OS-level library, and Libsecret is given as an example.
-It is also said that V11 will not be used if the OS-level library is not available. So if Chromium fails to fetch the secret from the system's keyring, it falls back the the hardcoded kV10Key.
+It is also said that V11 will not be used if the OS-level library is not available.
 
 The hardcoded password is "peanuts" and is actually in the same file, a few lines ahead:
 
@@ -104,7 +104,7 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 ```
 >Note: We also see that the salt is set to `"saltysalt"`.
 
-- PBKDF2 (Password-Based Key Derivation Function 2) is a function used to transform a not very strong secret (`"peanuts"` or secret from keyring) into a cryptographic key usable by AES.
+- PBKDF2 (Password-Based Key Derivation Function 2) is a function used to transform a not very strong secret (`"peanuts"` or secret from keyring) into a cryptographic key usable by AES. Chromium uses only one iteration, making key derivation effectively instantaneous.
 - HMAC (Hash-based Message Authentication Code) is a keyed construction based on a hash function, used here as a building block for PBKDF2.
 - SHA-1 is a hash function.
 
