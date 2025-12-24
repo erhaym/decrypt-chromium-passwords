@@ -1,15 +1,15 @@
-# Retreiving Chrome Saved Passwords
+# Retrieving Chrome Saved Passwords
 
 > **TL;DR**
 > This article explains how Chromium-based browsers store saved passwords on Linux,
 > why this mechanism is insecure under local attacker assumptions,
 > and demonstrates how stored credentials can be decrypted using publicly available information.
 
-Ever got told to never click "Save" when your browser asks you to save the password you just entered? I did, and since I don't like getting told what not to do without precise explanations, I decided that I had to figure out exactly why that was considered a bad practice. 
+Ever got told to never click "Save" when your browser asks you to save the password you just entered? I often hear that, and since I don't like getting told what not to do without precise explanations, I decided that I had to figure out exactly why that was considered a bad practice. 
 
 This was an opportunity for me to explore the domain of cryptography and all of the fundamental theory and practice that I had acquired during my freshman year.
 
-This article will be a documentation of my experimental journey to understand why saving passwords on your browser is generally considered a bad security practice, I will first dive into how the process of saving passwords works and the cryptography behind it, before applying the knowledge I gained through personal research to practically test retrieving my own passwords, to directly measure what exactly made this practice insecure.
+This article will be a documentation of my experimental journey to understand why saving passwords on your browser is generally considered a bad security practice, I will first dive into how the process of saving passwords works and the cryptography behind, before applying the knowledge I gained through personal research to practically test retrieving and decrypting/deobfuscating my own passwords in order directly measure what exactly makes this practice insecure.
 
 ## Understanding how Chromium handles saved passwords
 
@@ -52,7 +52,7 @@ username_element, username_value, password_element, signon_realm));
 CREATE INDEX logins_signon ON logins (signon_realm);
 sqlite>
 ```
->Note: If you want to try this, make sure that your browser is closed, as the table will be locked if Chromium (or Chrome) is opened.
+>Note: If you want to try this, make sure that your browser is closed, as the table will be locked if it is opened.
 
 Let's query the database, we'll select the following attributes:
 `origin_url`, `username_value`, `password_value`
@@ -87,7 +87,7 @@ constexpr char kObfuscationPrefixV10[] = "v10";
 constexpr char kObfuscationPrefixV11[] = "v11";
 ```
 
-As we can see, we have two possible prefixes, "v10" or "v11"  used by Chromium to signal how the saved password is processed, they're notably referred to as "ObfuscationPrefix", additionally we read that:
+As we can see, we have two possible prefixes, "v10" or "v11" used by Chromium to signal how the saved password is processed, they're notably referred to as "ObfuscationPrefix". Additionally we read that:
 - The "v10" prefix signals that the password is encrypted using a hardcoded password.
 - The "v11" signals that the password is stored by using an OS-level library, and Libsecret is given as an example.
 It is also said that V11 will not be used if the OS-level library is not available. So if Chromium fails to fetch the secret from the system's keyring, it falls back the the hardcoded kV10Key.
@@ -105,7 +105,7 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 >Note: We also see that the salt is set to `"saltysalt"`.
 
 - PBKDF2 (Password-Based Key Derivation Function 2) is a function used to transform a not very strong secret (`"peanuts"` or secret from keyring) into a cryptographic key usable by AES.
-- HMAC (Hash-based Message Authentication Code) is a cryptographic mecanism that takes a hash (here SHA-1) and a shared secret key to verify the integrity and the authenticity of the output.
+- HMAC (Hash-based Message Authentication Code) is a cryptographic mechanism that takes a hash (here SHA-1) and a shared secret key to verify the integrity and the authenticity of the output.
 - SHA-1 is a hash function.
 
 This tells us that Chromium derives the encryption key using PBKDF2-HMAC-SHA1, with:
@@ -128,7 +128,7 @@ A keyring is a secure credential storage service provided by the operating syste
 On Linux Mint, which is the distribution I use, there's an app called Passwords and Keys (Seahorse) to inspect and manage the keyring.
 When opening it, we're met with a "Login" section, and in it is listed Chromium Safe Storage: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
 
-<img width="1208" height="432" alt="image" src="https://github.com/user-attachments/assets/b42df5b3-02b9-48df-9b9f-af21d8d1efa5" />
+<img width="1212" height="430" alt="image" src="https://github.com/user-attachments/assets/55722352-a7bd-411e-b039-dca3b19c09a5" />
 
 ## Understanding how the encryption / obfuscation works
 
@@ -138,9 +138,9 @@ AES-CBC is AES in Cipher Block Chaining mode. AES encrypts data block by block (
 
 The Initialization Vector (IV) is usually a non-secret, unpredictable value used as the initial input block in a chaining cipher mode (like CBC). Its cryptographic function is to provide probabilistic encryption, ensuring that encrypting identical plaintext with the same key produces distinct ciphertexts. This breaks patterns and prevents statistical attacks on the ciphertext.
 
-<img width="1042" height="413" alt="image" src="https://github.com/user-attachments/assets/86030972-e50f-4877-a80a-8f5e4a0851ad" />
+<img width="1192" height="463" alt="image" src="https://github.com/user-attachments/assets/03ccc786-11cc-4157-baf5-6bc2a96e1c3d" />
 
-(Source: [https://highgo.ca/wp-content/uploads/2019/08/CBC-encryption-1024x408.png](https://ctftime.org/writeup/29464))
+(Source: [https://ctftime.org/writeup/29464](https://ctftime.org/writeup/29464))
 <br>
 
 So to decrypt AES-CBC we need:
@@ -180,7 +180,7 @@ b'**************\x05\x05\x05\x05\x05' # \x05 : padding bytes
 >Note: Padding is extra bytes added so that the length fits a required block size.
 
 I censored my keyring secret and my password but it does work. We've successfully decrypted the password.
-Therefore, any local malicious program running can fully recover these saved passwords, as we have seen, it just has to read access to the browser's profile directory and query the user's keyring.
+Therefore, any local malicious program running can fully recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
 
 To demonstrate the practical implications, I've written a Python script that automates this entire decryption process.
 This tool is for educational and personal research only. Use it only on your own systems to practically observe the implications in case your machine get infected, as these are the steps malicious programs could follow to exfiltrate your credentials.
