@@ -185,6 +185,16 @@ Therefore, a local malicious program running could recover these saved passwords
 To demonstrate the practical implications, I've written a Python script that automates this entire decryption process.
 This tool is for educational and personal research only. Use it only on your own systems.
 
+## Sources
+
+- https://superuser.com/questions/146742/how-does-google-chrome-store-passwords
+- https://ohyicong.medium.com/how-to-hack-chrome-password-with-python-1bedc167be3d
+- https://source.chromium.org/
+- https://fr.wikipedia.org/wiki/PBKDF2
+- https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV)
+- https://stackoverflow.com/questions/23153159/decrypting-chromium-cookies/23727331
+- https://rtfm.co.ua/en/chromium-linux-keyrings-secret-service-passwords-encryption-and-store/
+
 ## Disclaimer
 
 This project is for educational and amateur security research only.
