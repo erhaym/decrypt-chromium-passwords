@@ -105,7 +105,7 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 >Note: We also see that the salt is set to `"saltysalt"`.
 
 - PBKDF2 (Password-Based Key Derivation Function 2) is a function used to transform a not very strong secret (`"peanuts"` or secret from keyring) into a cryptographic key usable by AES.
-- HMAC (Hash-based Message Authentication Code) is a cryptographic mechanism that takes a hash (here SHA-1) and a shared secret key to verify the integrity and the authenticity of the output.
+- HMAC (Hash-based Message Authentication Code) is a keyed construction based on a hash function, used here as a building block for PBKDF2.
 - SHA-1 is a hash function.
 
 This tells us that Chromium derives the encryption key using PBKDF2-HMAC-SHA1, with:
@@ -180,10 +180,10 @@ b'**************\x05\x05\x05\x05\x05' # \x05 : padding bytes
 >Note: Padding is extra bytes added so that the length fits a required block size.
 
 I censored my keyring secret and my password but it does work. We've successfully decrypted the password.
-Therefore, any local malicious program running can fully recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
+Therefore, a local malicious program running could recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
 
 To demonstrate the practical implications, I've written a Python script that automates this entire decryption process.
-This tool is for educational and personal research only. Use it only on your own systems to practically observe the implications in case your machine get infected, as these are the steps malicious programs could follow to exfiltrate your credentials.
+This tool is for educational and personal research only. Use it only on your own systems.
 
 ## Disclaimer
 
