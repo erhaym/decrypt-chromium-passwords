@@ -165,7 +165,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from Crypto.Protocol.KDF import PBKDF2
 >>> import base64
 >>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B"
->>> encrypted_password = encrypted_password[2*3:] # 2 hex chars = 1 byte
+>>> encrypted_password = encrypted_password[2*3:] # we remove the "v11/10" prefix -> hex chars = 1 byte
 >>> salt = b'saltysalt'
 >>> iv = b' ' * 16
 >>> length = 16
