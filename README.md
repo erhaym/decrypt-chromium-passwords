@@ -150,7 +150,6 @@ So to decrypt AES-CBC we need:
 
 This is great because:
 - As we pointed out, the IV is constant in Chromium's code and consists of 16 space characters.
-I guess this is why the process is sometimes notably referred to as obfuscation in the source code.
 - The key is either `"peanuts"` or extracted from the OS' DE.
 - And we already have the ciphertext.
 
