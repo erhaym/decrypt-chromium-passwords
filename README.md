@@ -16,6 +16,7 @@ This article will be a documentation of my experimental journey to understand wh
 Typically, when you press the "Save" button when getting that little annoying pop up each time you register or login to a website for the first time, your browser stores the password you just agreed to save (alongside the username and other data), in a SQLite database inside your machine.
 
 On Linux, you can take a look at that for yourself by inspecting the following path:
+
 `~/.config/google-chrome/Default/` for Chrome
 
 Or `~/.config/chromium/Default/` for Chromium 
@@ -105,7 +106,7 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 ```
 >Note: We also see that the salt is set to `"saltysalt"`.
 
-This tells us that Chromium derives the encryption key using PBKDF2-HMAC-SHA1, with:
+This tells us that Chromium derives the encryption key using [PBKDF2-HMAC-SHA1](https://en.wikipedia.org/wiki/PBKDF2), with:
 - the secret `"peanuts"`
 - the salt `"saltysalt"`
 - only 1 iteration (instantaneous)
@@ -128,6 +129,8 @@ On Linux Mint, which is the distribution I use, there's an app called Passwords 
 When opening it, we're met with a "Login" section, and in it is listed Chromium Safe Storage: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
 
 <img width="1212" height="430" alt="image" src="https://github.com/user-attachments/assets/55722352-a7bd-411e-b039-dca3b19c09a5" />
+
+You could also just type in `$ secret-tool lookup application chromium` (or `chrome`) in your terminal to retreive its secret.
 
 ## Understanding how the encryption / obfuscation works
 
