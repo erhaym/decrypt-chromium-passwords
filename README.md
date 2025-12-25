@@ -17,6 +17,7 @@ Typically, when you press the "Save" button when getting that little annoying po
 
 On Linux, you can take a look at that for yourself by inspecting the following path:
 `~/.config/google-chrome/Default/` for Chrome
+
 Or `~/.config/chromium/Default/` for Chromium 
 
 You should see a file named `Login Data`. That's the database we're interested in.
@@ -35,7 +36,7 @@ meta                    sync_entities_metadata
 The database contains multiple tables, containing informations about the user's login habits.
 But here we're solely insterested in the `logins` table.
 
-On sqlite3, we take a look the table's structure (schema):
+On sqlite3, we can take a look the table's structure (schema):
 
 ```
 sqlite> .schema logins
