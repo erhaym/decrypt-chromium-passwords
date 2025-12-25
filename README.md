@@ -100,7 +100,7 @@ The hardcoded password mentionned in the comments is `"peanuts"` and is actually
 // clang-format off
 // PBKDF2-HMAC-SHA1(1 iteration, key = "peanuts", salt = "saltysalt")
 constexpr auto kV10Key = std::to_array<uint8_t>({
-    0xfd, 0x62, 0x1f, 0xe5, 0xa2, 0xb4, 0x02, 0x53, // 
+    0xfd, 0x62, 0x1f, 0xe5, 0xa2, 0xb4, 0x02, 0x53,
     0x9d, 0xfa, 0x14, 0x7c, 0xa9, 0x27, 0x27, 0x78,
 });
 ```
@@ -109,7 +109,7 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 This tells us that Chromium derives the encryption key using [PBKDF2-HMAC-SHA1](https://en.wikipedia.org/wiki/PBKDF2), with:
 - the secret `"peanuts"`
 - the salt `"saltysalt"`
-- only 1 iteration (instantaneous)
+- only 1 iteration (instantaneous derivation)
 
 ```C++
 const std::array<uint8_t, crypto::aes_cbc::kBlockSize> kIv{
