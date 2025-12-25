@@ -161,7 +161,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import sqlite3
 >>> from Crypto.Cipher import AES
 >>> from Crypto.Protocol.KDF import PBKDF2
->>> import base64
 >>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B"
 >>> # let's remove the "v11/10" prefix
 >>> encrypted_password = encrypted_password[2*3:] # hex chars = 1 byte
@@ -182,7 +181,7 @@ I censored my keyring secret and my password but it does work. We've successfull
 
 Therefore, a local malicious program running could recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
 
-To demonstrate the practical implications, I've written a Python script that automates this entire decryption process.
+To demonstrate the practical implications, I've written a [Python script](https://github.com/erhaym/decrypt-chromium-passwords/blob/main/decrypt_passwords.py) that automates this entire decryption process.
 This tool is for educational and personal research only. Use it only on your own systems.
 
 ## Sources
