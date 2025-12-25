@@ -127,7 +127,7 @@ As we can see the IV is fixed an consists of 16 space characters (0x20).
 A keyring is a secure credential storage service provided by the operating system's desktop environment. It is a centralized, encrypted database that store secrets, passwords, keys and certificates and make them available to applications.
 
 On Linux Mint, which is the distribution I use, there's an app called Passwords and Keys (Seahorse) to inspect and manage the keyring.
-When opening it, we're met with a "Login" section, and in it is listed Chromium Safe Storage: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
+When opening it, we're met with a "Login" section, and in it is listed `Chromium Safe Storage` / `Chrome Safe Storage`: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
 
 <img width="1212" height="430" alt="image" src="https://github.com/user-attachments/assets/55722352-a7bd-411e-b039-dca3b19c09a5" />
 
@@ -165,13 +165,15 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import sqlite3
 >>> from Crypto.Cipher import AES
 >>> from Crypto.Protocol.KDF import PBKDF2
->>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B"
->>> # let's remove the "v11/10" prefix
->>> encrypted_password = encrypted_password[2*3:] # hex chars = 1 byte
+>>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B" # prefix: 76 31 31 -> ASCII -> "v11"
+>>> # let's remove the v11 prefix
+>>> encrypted_password = encrypted_password[2*3:] # 3 bytes: 6 hex chars
 >>> salt = b'saltysalt'
 >>> iv = b' ' * 16
 >>> length = 16
 >>> iterations = 1
+>>> # since the password was encrypted using V11
+>>> # we use the keyring's secret to derivate the key
 >>> keyring = "**********************==".encode('utf8')
 >>> key = PBKDF2(keyring, salt, length, iterations)
 >>> cipher = AES.new(key, AES.MODE_CBC, IV=iv)
