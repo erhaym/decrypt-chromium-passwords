@@ -67,13 +67,13 @@ https://www.*******.com/|**************@gmail.com|v10C53S�Y�8�s@c�Da�
 
 As we expect, passwords are not shown in plain text. We notice that they're preceded by two prefixes: "v11" and sometimes "v10".
 We'll get into that right now, but first, we want to manipulate the passwords, and that is not possible if we query the DB like this because sqlite3 is currently interpreting the encrypted passwords as UTF-8 text, thus corrupting the values.
-The `password_value` actually consists of binary data coming from an  or an obfuscation process.
+The `password_value` actually consists of binary data coming from an encryption/obfuscation process.
 We can get the raw data in hexadecimal by using the hex() function, we'll specify as parameter the `password_value` attribute.
 
 So we should type in the following query:
 `SELECT origin_url, username_value, hex(password_value) FROM logins;`
 
-Now let's go back to those "v11" and "v10", and for that we must go to [Chromium's source code](https://source.chromium.org/).
+Now let's go back to those "v11" and "v10", and to understand these, we must go to [Chromium's source code](https://source.chromium.org/).
 
 When inspecting the `os_crypt_linux.cc` file we stumble upon this:
 
