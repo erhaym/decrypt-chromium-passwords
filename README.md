@@ -1,4 +1,4 @@
-# Retrieving Chrome Saved Passwords
+# <img width="25" height="25" alt="image" src="https://github.com/user-attachments/assets/600808c2-a647-4760-9021-d208a41c2990" /> Retrieving Chrome Saved Passwords
 
 > **TL;DR**
 > This article explains how Chromium-based browsers store saved passwords on Linux,
@@ -64,15 +64,15 @@ https://www.*******.com/|**************@gmail.com|v10C53S�Y�8�s@c�Da�
 [...]
 ```
 
-As we expect, the password is not shown in plain text. We notice that they're preceded by two prefixes: "v11" and sometimes "v10".
-We'll get into that right now, but first, we want to manipulate this password, and it is just not possible if we query the DB like this because sqlite3 is currently interpreting the encrypted passwords as UTF-8 text, thus corrupting the values.
+As we expect, passwords are not shown in plain text. We notice that they're preceded by two prefixes: "v11" and sometimes "v10".
+We'll get into that right now, but first, we want to manipulate the passwords, and that is not possible if we query the DB like this because sqlite3 is currently interpreting the encrypted passwords as UTF-8 text, thus corrupting the values.
 The `password_value` actually consists of binary data coming from an  or an obfuscation process.
 We can get the raw data in hexadecimal by using the hex() function, we'll specify as parameter the `password_value` attribute.
 
 So we should type in the following query:
 `SELECT origin_url, username_value, hex(password_value) FROM logins;`
 
-Now let's go back to those "v11" and "v10", and for that we must go to the source code of of Chromium (https://source.chromium.org/).
+Now let's go back to those "v11" and "v10", and for that we must go to [Chromium's source code](https://source.chromium.org/).
 
 When inspecting the `os_crypt_linux.cc` file we stumble upon this:
 
@@ -87,12 +87,12 @@ constexpr char kObfuscationPrefixV10[] = "v10";
 constexpr char kObfuscationPrefixV11[] = "v11";
 ```
 
-As we can see, we have two possible prefixes, "v10" or "v11" used by Chromium to signal how the saved password is processed, they're notably referred to as "ObfuscationPrefix". Additionally we read that:
+As we can see, we have two possible prefixes ("v10" or "v11") used by Chromium to signal how the saved password is processed, they're notably referred to as "ObfuscationPrefix". Additionally we read that:
 - The "v10" prefix signals that the password is encrypted using a hardcoded password.
-- The "v11" signals that the password is stored by using an OS-level library, and Libsecret is given as an example.
+- The "v11" signals that the password is stored by using an OS-level library, Libsecret is given as an example.
 It is also said that V11 will not be used if the OS-level library is not available.
 
-The hardcoded password mentionned in the comments is `"peanuts"` and is actually in the same file, a few lines ahead:
+The hardcoded password mentionned in the comments is `"peanuts"` and is actually in the same file, just a few lines ahead:
 
 ```C++
 // clang-format off
@@ -104,14 +104,10 @@ constexpr auto kV10Key = std::to_array<uint8_t>({
 ```
 >Note: We also see that the salt is set to `"saltysalt"`.
 
-- PBKDF2 (Password-Based Key Derivation Function 2) is a function used to transform a not very strong secret (`"peanuts"` or secret from keyring) into a cryptographic key usable by AES. Chromium uses only one iteration, making key derivation effectively instantaneous.
-- HMAC (Hash-based Message Authentication Code) is a keyed construction based on a hash function, used here as a building block for PBKDF2.
-- SHA-1 is a hash function.
-
 This tells us that Chromium derives the encryption key using PBKDF2-HMAC-SHA1, with:
 - the secret `"peanuts"`
 - the salt `"saltysalt"`
-- only 1 iteration to derivate the key (instantaneous)
+- only 1 iteration (instantaneous)
 
 ```C++
 const std::array<uint8_t, crypto::aes_cbc::kBlockSize> kIv{
@@ -120,8 +116,10 @@ const std::array<uint8_t, crypto::aes_cbc::kBlockSize> kIv{
 };
 ```
 
-This part of the code defines the Initialization Vector (IV) used for AES in CBC mode.
+This is the Initialization Vector (IV) used for AES in CBC mode.
 As we can see the IV is fixed an consists of 16 space characters (0x20).
+
+## Accessing the Keyring
 
 A keyring is a secure credential storage service provided by the operating system's desktop environment. It is a centralized, encrypted database that store secrets, passwords, keys and certificates and make them available to applications.
 
@@ -164,7 +162,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from Crypto.Protocol.KDF import PBKDF2
 >>> import base64
 >>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B"
->>> encrypted_password = encrypted_password[2*3:] # we remove the "v11/10" prefix -> hex chars = 1 byte
+>>> # let's remove the "v11/10" prefix
+>>> encrypted_password = encrypted_password[2*3:] # hex chars = 1 byte
 >>> salt = b'saltysalt'
 >>> iv = b' ' * 16
 >>> length = 16
