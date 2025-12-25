@@ -3,9 +3,9 @@
 > **TL;DR**
 > This article explains how Chromium-based browsers store saved passwords on Linux,
 > why this mechanism is insecure under local attacker assumptions,
-> and demonstrates how stored credentials can be decrypted using publicly available information.
+> and demonstrates how stored credentials can be decrypted.
 
-Ever got told to never click "Save" when your browser asks you to save the password you just entered? I often hear that, and since I don't like getting told what not to do without precise explanations, I decided that I had to figure out exactly why that was considered a bad practice. 
+Ever got told to never click "Save" when your browser asks you to save the password you just entered? I often hear that, and since I don't like getting told what not to do without precise explanations, I decided that I had to figure out exactly why this was deemed to be a bad practice. 
 
 This was an opportunity for me to explore the domain of cryptography and all of the fundamental theory and practice that I had acquired during my freshman year.
 
@@ -92,7 +92,7 @@ As we can see, we have two possible prefixes, "v10" or "v11" used by Chromium to
 - The "v11" signals that the password is stored by using an OS-level library, and Libsecret is given as an example.
 It is also said that V11 will not be used if the OS-level library is not available.
 
-The hardcoded password is "peanuts" and is actually in the same file, a few lines ahead:
+The hardcoded password mentionned in the comments is `"peanuts"` and is actually in the same file, a few lines ahead:
 
 ```C++
 // clang-format off
@@ -179,6 +179,7 @@ b'**************\x05\x05\x05\x05\x05' # \x05 : padding bytes
 >Note: Padding is extra bytes added so that the length fits a required block size.
 
 I censored my keyring secret and my password but it does work. We've successfully decrypted the password.
+
 Therefore, a local malicious program running could recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
 
 To demonstrate the practical implications, I've written a Python script that automates this entire decryption process.
