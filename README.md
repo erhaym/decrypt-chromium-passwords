@@ -13,13 +13,13 @@ This article will be a documentation of my experimental journey to understand wh
 
 ## Understanding how Chromium handles saved passwords
 
-Typically, when you press the "Save" button when getting that little annoying pop up each time you register or login to a website for the first time, your browser stores the password you just agreed to save (alongside the username and other data), in a SQLite database inside your machine.
+Typically, when you press the "Save" button when getting that little annoying pop up each time you register or login to a website for the first time, your browser stores the password you just agreed to save (alongside the username and other data) in a SQLite database inside your machine.
 
 On Linux, you can take a look at that for yourself by inspecting the following path:
 
 `~/.config/google-chrome/Default/` for Chrome
 
-Or `~/.config/chromium/Default/` for Chromium 
+or `~/.config/chromium/Default/` for Chromium 
 
 You should see a file named `Login Data`. That's the database we're interested in.
 We open it by using the command line interface `sqlite3`. 
@@ -34,7 +34,7 @@ logins                  stats
 meta                    sync_entities_metadata
 ```
 
-The database contains multiple tables, containing informations about the user's login habits.
+The database includes multiple tables, containing informations about the user's login habits.
 But here we're solely insterested in the `logins` table.
 
 On sqlite3, we can take a look the table's structure (schema):
@@ -72,9 +72,10 @@ The `password_value` actually consists of binary data coming from an encryption/
 We can get the raw data in hexadecimal by using the hex() function, we'll specify as parameter the `password_value` attribute.
 
 So we should type in the following query:
+
 `SELECT origin_url, username_value, hex(password_value) FROM logins;`
 
-Now let's go back to those "v11" and "v10", and to understand these, we must go to [Chromium's source code](https://source.chromium.org/).
+Now let's go back to those "v10" and "v11" prefixes. To understand these, we must go to [Chromium's source code](https://source.chromium.org/).
 
 When inspecting the `os_crypt_linux.cc` file we stumble upon this:
 
@@ -136,13 +137,13 @@ You could also just type in `$ secret-tool lookup application chromium` (or `chr
 
 AES (Advanced Encryption Standard) is a symmetric block cipher that transforms data through multiple rounds of substitution and permutation operations based on the key.
 
-AES-CBC is AES in Cipher Block Chaining mode. AES encrypts data block by block (16 bytes). CBC is a mode of operation that defines how blocks are chained. In the encryption process, for each 16-byte block, it XORs the plaintext block with the previous ciphertext block, then encrypts the result with the AES key. For the first block, the “previous ciphertext block” is the IV.
+AES-CBC is AES in Cipher Block Chaining mode. AES encrypts data block by block (16 bytes). [CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)) is a mode of operation that defines how blocks are chained. In the encryption process, for each 16-byte block, it XORs the plaintext block with the previous ciphertext block, then encrypts the result with the AES key. For the first block, the “previous ciphertext block” is the IV.
 
 The Initialization Vector (IV) is usually a non-secret, unpredictable value used as the initial input block in a chaining cipher mode (like CBC). Its cryptographic function is to provide probabilistic encryption, ensuring that encrypting identical plaintext with the same key produces distinct ciphertexts. This breaks patterns and prevents statistical attacks on the ciphertext.
 
-<img width="1192" height="463" alt="image" src="https://github.com/user-attachments/assets/03ccc786-11cc-4157-baf5-6bc2a96e1c3d" />
+<img width="781" height="746" alt="image" src="https://github.com/user-attachments/assets/7fe7a069-bcdd-4c96-9372-d911133f2fe5" />
 
-(Source: [https://ctftime.org/writeup/29464](https://ctftime.org/writeup/29464))
+(Source: [https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)))
 <br>
 
 So to decrypt AES-CBC we need:
@@ -184,15 +185,16 @@ I censored my keyring secret and my password but it does work. We've successfull
 
 Therefore, a local malicious program running could recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
 
-To demonstrate the practical implications, I've written a [Python script](https://github.com/erhaym/decrypt-chromium-passwords/blob/main/decrypt_passwords.py) that automates this entire decryption process.
-This tool is for educational and personal research only. Use it only on your own systems.
+To demonstrate the practical implications, I've written a [Python script](https://github.com/erhaym/decrypt-chromium-passwords/blob/main/decrypt_passwords.py) that automates this entire decryption process for all saved passwords on Chromium or Chrome. You could also add any other Chromium-based browser and try it, don't forget to also add the path to the DB.
+This tool is for educational and personal research only. Use it only on your own systems or systems you were authorized to completely manipulate. It should not be used on a session that does not belong to you.
 
 ## Sources
 
 - https://superuser.com/questions/146742/how-does-google-chrome-store-passwords
 - https://ohyicong.medium.com/how-to-hack-chrome-password-with-python-1bedc167be3d
-- https://source.chromium.org/
-- https://fr.wikipedia.org/wiki/PBKDF2
+- https://source.chromium.org/chromium/chromium/src/+/main:components/os_crypt/
+- https://fr.wikipedia.org/wiki/PBKDF2#Fonction_de_d%C3%A9rivation
+- https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)
 - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV)
 - https://stackoverflow.com/questions/23153159/decrypting-chromium-cookies/23727331
 - https://rtfm.co.ua/en/chromium-linux-keyrings-secret-service-passwords-encryption-and-store/
@@ -204,3 +206,7 @@ This project is for educational and amateur security research only.
 It demonstrates why browser password storage should not be relied upon
 
 to protect sensitive credentials on compromised or shared systems.
+
+It is by no means meant to be used on a machine you were not
+
+authorized to manipulate in such a manner.
