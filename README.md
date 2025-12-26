@@ -2,7 +2,7 @@
 
 > **TL;DR**
 > This article explains how Chromium-based browsers store saved passwords on Linux,
-> why this mechanism is insecure under local attacker assumptions,
+> why this mechanism is insecure by design under local attacker assumptions,
 > and demonstrates how stored credentials can be decrypted.
 
 Ever got told to never click "Save" when your browser asks you to save the password you just entered? I often hear that, and since I don't like getting told what not to do without precise explanations, I decided that I had to figure out exactly why this was deemed to be a bad practice. 
@@ -34,7 +34,7 @@ logins                  stats
 meta                    sync_entities_metadata
 ```
 
-The database includes multiple tables, containing informations about the user's login habits.
+The database includes multiple tables containing informations about the user's login habits.
 But here we're solely insterested in the `logins` table.
 
 On sqlite3, we can take a look the table's structure (schema):
@@ -66,7 +66,7 @@ https://www.*******.com/|**************@gmail.com|v10C53S�Y�8�s@c�Da�
 [...]
 ```
 
-As we expect, passwords are not shown in plain text. We notice that they're preceded by two prefixes: "v11" and sometimes "v10".
+As we expect, the passwords are not shown in plain text. We notice that they're preceded by two prefixes: "v11" and sometimes "v10".
 We'll get into that right now, but first, we want to manipulate the passwords, and that is not possible if we query the DB like this because sqlite3 is currently interpreting the encrypted passwords as UTF-8 text, thus corrupting the values.
 The `password_value` actually consists of binary data coming from an encryption/obfuscation process.
 We can get the raw data in hexadecimal by using the hex() function, we'll specify as parameter the `password_value` attribute.
@@ -127,15 +127,17 @@ As we can see the IV is fixed an consists of 16 space characters (0x20).
 A keyring is a secure credential storage service provided by the operating system's desktop environment. It is a centralized, encrypted database that store secrets, passwords, keys and certificates and make them available to applications.
 
 On Linux Mint, which is the distribution I use, there's an app called Passwords and Keys (Seahorse) to inspect and manage the keyring.
-When opening it, we're met with a "Login" section, and in it is listed `Chromium Safe Storage` / `Chrome Safe Storage`: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
+When opening it, we're met with a "Login" section, and in it is listed `Chromium Safe Storage` / `Chrome Safe Storage`: this is exactly what we're looking for. When inspecting the item, we get a base64-encoded password. 
+
+When V11 is used, this is the exact secret used by Chromium to encrypt the saved passwords.
 
 <img width="1212" height="430" alt="image" src="https://github.com/user-attachments/assets/55722352-a7bd-411e-b039-dca3b19c09a5" />
 
-You could also just type in `$ secret-tool lookup application chromium` (or `chrome`) in your terminal to retreive its secret.
+You could also just type in `$ secret-tool lookup application chromium` (or `chrome`) in your terminal to retreive your browser's secret.
 
 ## Understanding how the encryption / obfuscation works
 
-AES (Advanced Encryption Standard) is a symmetric block cipher that transforms data through multiple rounds of substitution and permutation operations based on the key.
+[AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard) (Advanced Encryption Standard) is a symmetric block cipher that transforms data through multiple rounds of substitution and permutation operations based on the key.
 
 AES-CBC is AES in Cipher Block Chaining mode. AES encrypts data block by block (16 bytes). [CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_block_chaining_(CBC)) is a mode of operation that defines how blocks are chained. In the encryption process, for each 16-byte block, it XORs the plaintext block with the previous ciphertext block, then encrypts the result with the AES key. For the first block, the “previous ciphertext block” is the IV.
 
@@ -165,8 +167,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import sqlite3
 >>> from Crypto.Cipher import AES
 >>> from Crypto.Protocol.KDF import PBKDF2
->>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B" # prefix: 76 31 31 -> ASCII -> "v11"
->>> # let's remove the v11 prefix
+>>> encrypted_password = "7631319F0A2C7D1E4B8A6F3C11D0E2A7C4F19B"
+>>> # prefix: 76 31 31 -> ASCII -> "v11"
+>>> # so let's remove the v11 prefix
 >>> encrypted_password = encrypted_password[2*3:] # 3 bytes: 6 hex chars
 >>> salt = b'saltysalt'
 >>> iv = b' ' * 16
@@ -185,9 +188,20 @@ b'**************\x05\x05\x05\x05\x05' # \x05 : padding bytes
 
 I censored my keyring secret and my password but it does work. We've successfully decrypted the password.
 
-Therefore, a local malicious program running could recover these saved passwords, as we have seen, it just needs read access to the browser's profile directory and the ability to query the user's unlocked keyring. For v10 passwords, the attack is even more trivial as the key is public.
+## Conclusion
 
-To demonstrate the practical implications, I've written a [Python script](https://github.com/erhaym/decrypt-chromium-passwords/blob/main/decrypt_passwords.py) that automates this entire decryption process for all saved passwords on Chromium or Chrome. You could also add any other Chromium-based browser and try it, don't forget to also add the path to the DB.
+Therefore, a malicious program running locally, with the current user's privileges, could easily recover these saved passwords. As we have seen, it just needs read access to the browser's profile directory and the ability to query the user's DE keyring.
+
+For v10 passwords, the attack is even more trivial as the key is just public information.
+
+This may seem like some severe weakness, but it isn't: it should be noted that this isn't some kind of vulnerability, it's just a design choice. Chrome's threat model explicitly [doesn't include compromised or infected machines](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/security/faq.md#why-arent-compromised_infected-machines-in-chromes-threat-model). Thus, stored passwords are only obfuscated against casual access, and that's by design.
+
+>_Why aren‘t compromised/infected machines in Chrome’s threat model?_
+
+>_Although the attacker may now be remote, the consequences are essentially the same as with physically-local attacks. The attacker's code, when it runs as your user account on your machine, can do anything you can do._
+
+With that said, in order to demonstrate the practical implications, I've written a [Python script](https://github.com/erhaym/decrypt-chromium-passwords/blob/main/decrypt_passwords.py) that automates this entire decryption process for all saved passwords on Chromium or Chrome. You could also add any other Chromium-based browser and try it, don't forget to also add the path to the DB.
+
 This tool is for educational and personal research only. Use it only on your own systems or systems you were authorized to completely manipulate. It should not be used on a session that does not belong to you.
 
 ## Sources
@@ -200,15 +214,12 @@ This tool is for educational and personal research only. Use it only on your own
 - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV)
 - https://stackoverflow.com/questions/23153159/decrypting-chromium-cookies/23727331
 - https://rtfm.co.ua/en/chromium-linux-keyrings-secret-service-passwords-encryption-and-store/
+- https://chromium.googlesource.com/chromium/src/+/HEAD/docs/security/faq.md
 
 ## Disclaimer
 
-This project is for educational and amateur security research only.
+This project is for educational and personal amateur security research only.
 
-It demonstrates why browser password storage should not be relied upon
+It demonstrates why browsers should not be relied upon to protect credentials on compromised or shared systems.
 
-to protect sensitive credentials on compromised or shared systems.
-
-It is by no means meant to be used on a machine you were not
-
-authorized to manipulate in such a manner.
+It is by no means meant to be used on a machine you were not authorized to manipulate in such a manner.
